@@ -1,24 +1,39 @@
-import './App.css';
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import "./App.css";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import loadingIcon from './assets/loading.gif';
 
 function App() {
-  const [data, setData] = useState('');
-  const [error, setError] = useState('');
+  const [data, setData] = useState("");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [progress, setProgress] = useState('');
+  const [progress, setProgress] = useState("");
+  const [history, setHistory] = useState([]);
 
   useEffect(() => {
-    const eventSource = new EventSource('http://175.111.97.105:5001/events');
+    const eventSource = new EventSource("http://175.111.97.105:5001/events");
 
     eventSource.onmessage = (event) => {
+      console.log(event);
       setProgress(event.data);
     };
 
     eventSource.onerror = (err) => {
-      console.error('EventSource failed:', err);
+      console.error("EventSource failed:", err);
       eventSource.close();
     };
+
+    const fetchData = async () => {
+      try {
+        const response = await axios.get("http://175.111.97.105:5001/status"); // Replace with your API endpoint
+        setHistory([...response.data]); 
+        console.log(history);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchData();
 
     return () => {
       eventSource.close();
@@ -27,7 +42,7 @@ function App() {
 
   const handleChange = (event) => {
     setData(event.target.value);
-    setError(''); // Clear error when user types in textarea
+    setError(""); // Clear error when user types in textarea
   };
 
   const sendData = async () => {
@@ -35,7 +50,7 @@ function App() {
       return; // Prevent multiple clicks while request is in progress
     }
     if (!data) {
-      setError('Please enter IPs'); // Display error if textarea is empty
+      setError("Please enter IPs"); // Display error if textarea is empty
       return;
     }
 
@@ -43,40 +58,55 @@ function App() {
 
     try {
       const response = await axios.post(
-        'http://175.111.97.105:5001/getExcel',
+        "http://175.111.97.105:5001/getExcel",
         { data },
         {
-          responseType: 'blob', // Receive response as a Blob (binary data)
           headers: {
-            'Content-Type': 'application/json',
-            'file': `data${Date.now().toString()}.xlsx`, // Specify filename in header
+            "Content-Type": "application/json",
+            file: `data${Date.now().toString()}.csv`, // Specify filename in header
           },
         }
       );
-
-      // Create a blob object from the response data
-      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-
-      // Create a temporary URL to download the blob
-      const url = window.URL.createObjectURL(blob);
       
-      // Create a temporary anchor element to initiate the download
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `data${Date.now().toString()}.xlsx`; // Set filename for download
-      document.body.appendChild(a); // Append anchor to body
-      a.click(); // Click the anchor to trigger download
-      document.body.removeChild(a); // Clean up: remove anchor from body
-      setData('');
-      
+      console.log(response.data);
+      window.location.reload()
+    
     } catch (error) {
-      console.error('Error downloading file:', error);
-      setError('Failed to download file. Please try again.'); // Update UI in case of error
+      console.error("Error downloading file:", error);
+      setError("Failed to download file. Please try again."); // Update UI in case of error
     } finally {
       setIsLoading(false); // Reset loading state regardless of success or failure
-      setProgress('')
+      setProgress("");
     }
   };
+
+  const downloadFile = async (fileName) => {
+    try {
+      const response = await axios.get('http://175.111.97.105:5001/download/'+fileName.replace('files/',''), {
+        responseType: 'blob',
+      });
+
+      // Create a link element
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Set the download attribute with a filename
+      link.setAttribute('download', fileName.replace('csv','xlsx')); // Replace with your desired file name
+
+      // Append the link to the body
+      document.body.appendChild(link);
+
+      // Programmatically click the link to trigger the download
+      link.click();
+
+      // Remove the link from the document
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading the file:', error);
+    }
+  };
+
 
   return (
     <div className="App">
@@ -88,14 +118,25 @@ function App() {
         placeholder="Enter IPs here..."
       />
       <br />
-      <h4 style={{ color: 'red' }}>{error}</h4>
+      <h4 style={{ color: "red" }}>{error}</h4>
       <br />
       <button onClick={sendData} disabled={isLoading}>
-        {isLoading ? 'Downloading...' : 'Download Excel'}
+        {isLoading ? "Downloading..." : "Download Excel"}
       </button>
       <div>
         <h4>Progress:</h4>
         <p>{progress}</p>
+      </div>
+      <div>
+        <h4>History</h4>
+
+        {history.map(item => (
+          <li onClick={()=>{
+            downloadFile(item.file);
+          }} style={{cursor:'pointer'}} key={item.file}>{item.file} { item.status == "done" ? <img height={18} src="https://img.icons8.com/fluency/48/download.png" alt="" />:<img height={18}  src={loadingIcon} alt="" /> } </li> // Replace with your data structure
+        ))}
+
+        
       </div>
     </div>
   );
