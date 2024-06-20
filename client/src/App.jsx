@@ -1,11 +1,29 @@
 import './App.css';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 function App() {
   const [data, setData] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState('');
+
+  useEffect(() => {
+    const eventSource = new EventSource('http://175.111.97.105:5001/events');
+
+    eventSource.onmessage = (event) => {
+      setProgress(event.data);
+    };
+
+    eventSource.onerror = (err) => {
+      console.error('EventSource failed:', err);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, []);
 
   const handleChange = (event) => {
     setData(event.target.value);
@@ -74,6 +92,10 @@ function App() {
       <button onClick={sendData} disabled={isLoading}>
         {isLoading ? 'Downloading...' : 'Download Excel'}
       </button>
+      <div>
+        <h4>Progress:</h4>
+        <p>{progress}</p>
+      </div>
     </div>
   );
 }

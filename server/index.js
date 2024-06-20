@@ -14,34 +14,64 @@ app.use(cors("*"));
 const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
 const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 
+app.get("/events", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  const sendEvent = (data) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  req.on("close", () => {
+    res.end();
+  });
+
+  app.set("sendEvent", sendEvent);
+});
+
 app.post("/getExcel", async (req, res) => {
   let ipDetails = [];
   let ips = req.body.data.split("\n");
   console.log(ips);
+  const sendEvent = app.get("sendEvent");
 
-  for await (const ip of ips) {
+  for (let i = 0; i < ips.length; i++) {
+    const ip = ips[i];
     if (validateIPv4(ip) || validateIPv6(ip)) {
-      let data = await getIpInfoInsertIntoExcel(ip);
-      const { currency, ...formatedJson } = {
-        ...data,
-        currencyCode: data.currency.code,
-        currencyName: data.currency.name,
-        timeZones: data.timeZones[0],
-        tlds: data.tlds[0],
-      };
-      ipDetails.push(formatedJson);
+      try {
+        let data = await getIpInfoInsertIntoExcel(ip);
+        const { currency, ...formatedJson } = {
+          ...data,
+          currencyCode: data.currency.code,
+          currencyName: data.currency.name,
+          timeZones: data.timeZones[0],
+          tlds: data.tlds[0],
+        };
+        ipDetails.push(formatedJson);
+        if (sendEvent) {
+          sendEvent(`Processed ${i + 1}/${ips.length} IPs`);
+        }
+      } catch (error) {
+        console.error(`Error processing IP ${ip}:`, error);
+      }
     }
   }
   console.log("Data");
   writeToXlsx(req.headers.file, ipDetails);
 
-  const filePath = path.join('files', req.headers.file);
+  const filePath = path.join("files", req.headers.file);
   if (!fs.existsSync(filePath)) {
-    return res.status(404).send('File not found.');
+    return res.status(404).send("File not found.");
   }
-  res.setHeader('Content-Disposition', 'attachment; filename=' + path.basename(filePath));
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-
+  res.setHeader(
+    "Content-Disposition",
+    "attachment; filename=" + path.basename(filePath)
+  );
+  res.setHeader(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  );
 
   const fileStream = fs.createReadStream(filePath);
   fileStream.pipe(res);
