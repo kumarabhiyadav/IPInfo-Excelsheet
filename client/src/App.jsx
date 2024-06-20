@@ -74,6 +74,7 @@ function App() {
       setError('Failed to download file. Please try again.'); // Update UI in case of error
     } finally {
       setIsLoading(false); // Reset loading state regardless of success or failure
+      setProgress('')
     }
   };
 
