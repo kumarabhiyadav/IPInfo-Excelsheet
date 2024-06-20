@@ -1,5 +1,5 @@
 const api = {
-    domain : "http://localhost:4000",
+    domain : "http://175.111.97.105:4000",
     endpoints : {
         'submitip' : '/submitip',
         
