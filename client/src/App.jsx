@@ -133,7 +133,7 @@ function App() {
         {history.map(item => (
           <li onClick={()=>{
             downloadFile(item.file);
-          }} style={{cursor:'pointer'}} key={item.file}>{item.file} { item.status == "done" ? <img height={18} src="https://img.icons8.com/fluency/48/download.png" alt="" />:<img height={18}  src={loadingIcon} alt="" /> } </li> // Replace with your data structure
+          }} style={{cursor:'pointer'}} key={item.file}>{item.file} { item.status == "done" ? <img height={18} src="https://img.icons8.com/fluency/48/download.png" alt="" />:<img height={18}  src={loadingIcon} alt="" /> } ${new Date(element.createdAt).toLocaleString()} </li> // Replace with your data structure
         ))}
 
         
