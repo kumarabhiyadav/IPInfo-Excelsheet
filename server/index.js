@@ -10,6 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const XLSX = require('xlsx');
 const csvParser = require('csv-parser');
+const { send } = require("process");
 
 app.use(cors("*"));
 
@@ -90,7 +91,8 @@ app.post("/getExcel", async (req, res) => {
 
           console.log(`${ip}`);
           if (sendEvent) {
-            sendEvent(`Processed ${i + 1}/${ipLength} IPs`);
+            // sendEvent(`Processed ${i + 1}/${ipLength} IPs`);
+            sendEvent({'type':'ip','data':formatedJson})
           }
         } catch (error) {
           console.error(`Error processing IP ${ip}:`);

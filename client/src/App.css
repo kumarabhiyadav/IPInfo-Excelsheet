@@ -40,3 +40,21 @@
 .read-the-docs {
   color: #888;
 }
+
+
+table {
+  margin: 20px auto;
+  border-collapse: collapse;
+  width: 80%;
+  border: 1px solid white; /* Add this line to set table border color */
+}
+
+th, td {
+  border: 1px solid white; /* Add this line to set cell border color */
+  padding: 8px;
+}
+
+th {
+  /* background-color: #f4f4f4; */
+  text-align: left;
+}
